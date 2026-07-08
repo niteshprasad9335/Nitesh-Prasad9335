@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Family Map</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <style>
+    #map { height: calc(100vh - 64px); }
+  </style>
+</head>
+<body class="bg-gray-900 text-white">
+  <nav class="bg-gray-800 p-4 flex justify-between items-center fixed w-full z-10">
+    <h1 class="text-2xl font-bold">📍 Family Live Tracker - Nitesh Kumar</h1>
+    <button onclick="toggleTracking()" id="trackBtn" class="bg-green-600 px-6 py-2 rounded-xl font-medium">Start Live Sharing</button>
+  </nav>
+
+  <div class="flex pt-16">
+    <div class="w-80 bg-gray-800 h-screen p-5 overflow-auto" id="familyList"></div>
+    <div id="map" class="flex-1"></div>
+  </div>
+
+  <script>
+    let map, markers = {}, socket, currentUser, watchId = null, isSharing = false;
+
+    currentUser = JSON.parse(localStorage.getItem('user'));
+    if (!currentUser) window.location.href = "login.html";
+
+    socket = io('http://localhost:5000');
+    socket.emit('join', currentUser.id);
+
+    socket.on('newLocation', (loc) => {
+      if (markers[loc.userId]) {
+        markers[loc.userId].setLatLng([loc.lat, loc.lng]);
+      } else {
+        markers[loc.userId] = L.marker([loc.lat, loc.lng]).addTo(map)
+          .bindPopup(`<b>${loc.name}</b><br>${loc.phone}`);
+      }
+    });
+
+    function initMap() {
+      map = L.map('map').setView([28.6139, 77.2090], 10);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    }
+
+    async function loadFamily() {
+      const res = await fetch('http://localhost:5000/users');
+      const users = await res.json();
+      let html = `<h2 class="text-xl font-bold mb-4">Family Members</h2>`;
+      users.forEach(u => {
+        html += `<div class="bg-gray-700 p-4 rounded-xl mb-3"><b>${u.name}</b><br><small>${u.phone}</small></div>`;
+      });
+      document.getElementById('familyList').innerHTML = html;
+    }
+
+    function toggleTracking() {
+      isSharing = !isSharing;
+      const btn = document.getElementById('trackBtn');
+      if (isSharing) {
+        btn.textContent = "⏹ Stop Sharing";
+        btn.classList.add('bg-red-600');
+        startTracking();
+      } else {
+        btn.textContent = "Start Live Sharing";
+        btn.classList.remove('bg-red-600');
+        stopTracking();
+      }
+    }
+
+    function startTracking() {
+      watchId = navigator.geolocation.watchPosition(pos => {
+        socket.emit('sendLocation', {
+          userId: currentUser.id,
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          name: currentUser.name,
+          phone: "9335212392"
+        });
+        map.setView([pos.coords.latitude, pos.coords.longitude], 15);
+      });
+    }
+
+    function stopTracking() {
+      if (watchId) navigator.geolocation.clearWatch(watchId);
+    }
+
+    window.onload = () => {
+      initMap();
+      loadFamily();
+    };
+  </script>
+</body>
+</html>

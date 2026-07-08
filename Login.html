@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Tracker Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center">
+  <div class="bg-gray-800 p-8 rounded-2xl w-full max-w-md">
+    <h1 class="text-3xl font-bold text-center mb-8">👨‍👩‍👧‍👦 Family Live Tracker</h1>
+    
+    <input id="email" placeholder="Email" class="w-full p-4 bg-gray-700 rounded-lg mb-4" value="niteshprasad933521@gmail.com">
+    <input id="password" type="password" placeholder="Password" class="w-full p-4 bg-gray-700 rounded-lg mb-6" value="123456">
+    
+    <button onclick="login()" class="w-full bg-blue-600 py-4 rounded-lg text-lg font-semibold mb-3">Login</button>
+    <button onclick="register()" class="w-full bg-green-600 py-4 rounded-lg text-lg font-semibold">Register New User</button>
+  </div>
+
+  <script>
+    async function register() {
+      const name = prompt("Full Name", "Nitesh Kumar");
+      const phone = prompt("Mobile", "9335212392");
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      const res = await fetch('http://localhost:5000/register', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name, phone, email, password})
+      });
+      const data = await res.json();
+      alert(data.msg);
+    }
+
+    async function login() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      const res = await fetch('http://localhost:5000/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({email, password})
+      });
+      const data = await res.json();
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        window.location.href = "index.html";
+      } else {
+        alert(data.msg);
+      }
+    }
+  </script>
+</body>
+</html>
